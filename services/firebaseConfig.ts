@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC8AclJLBJi11mznvSKKrpW2foVG_SA_lw",
+  apiKey: "blank",
   authDomain: "windfields-connect.firebaseapp.com",
   projectId: "windfields-connect",
   storageBucket: "windfields-connect.firebasestorage.app",
