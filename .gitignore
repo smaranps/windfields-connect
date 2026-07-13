@@ -2,6 +2,7 @@
 
 services/
 
+.gitignore
 
 # dependencies
 node_modules/
