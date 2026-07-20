@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { db, auth, storage } from "../services/firebaseConfig";
 import { addDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { Filter } from "bad-words";
 import {
   doc,
   updateDoc,
@@ -27,7 +28,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 
 export default function PostEvent() {
   const [content, setContent] = useState("");
@@ -36,6 +37,10 @@ export default function PostEvent() {
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(
     null
   );
+
+  const [isComposerVisible, setIsComposerVisible] = useState(false);
+
+  const filter = new Filter();
 
   const handleDelete = async (postId: string) => {
     Alert.alert("Delete Post", "Are you sure you want to delete this?", [
@@ -67,6 +72,16 @@ export default function PostEvent() {
 
   const handlePublish = async () => {
     if ((!content.trim() && !image) || isPublishing) return;
+
+    const isProfane = filter.isProfane(content);
+    if (isProfane) {
+      Alert.alert(
+        "Community Guidelines",
+        "Your post contains words that violate our neighborhood guidelines. Please edit your update and try again.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
 
     setIsPublishing(true);
     try {
@@ -102,6 +117,7 @@ export default function PostEvent() {
 
       setContent("");
       setImage(null);
+      setIsComposerVisible(false);
     } catch (e) {
       console.error("Error publishing post: ", e);
       Alert.alert(
@@ -161,100 +177,23 @@ export default function PostEvent() {
   return (
     <LinearGradient colors={["#0191d6", "#06c9c1"]} style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView style={styles.container}>
-        <TouchableOpacity
-          style={styles.BackButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol name="chevron.left" size={20} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.title}>What's happening?</Text>
-        <View style={styles.inputCard}>
-          <TextInput
-            placeholder="Type your neighborhood update here..."
-            multiline
-            value={content}
-            onChangeText={setContent}
-            style={styles.input}
-            placeholderTextColor="#999"
-          />
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity style={styles.button} onPress={handlePublish}>
-              <Text style={styles.buttonText}>Post to Feed</Text>
-            </TouchableOpacity>
-            <View style={{ marginVertical: 10, marginLeft: 10 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 10,
-                  justifyContent: "space-around",
-                }}
-              >
-                <TouchableOpacity
-                  onPress={pickImage}
-                  style={{
-                    backgroundColor: "#f0f0f0",
-                    padding: 10,
-                    borderRadius: 50,
-                    width: 45,
-                    height: 45,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <IconSymbol
-                    name={image ? "photo.fill" : "paperclip"}
-                    size={22}
-                    color="#0191d6"
-                  />
-                </TouchableOpacity>
 
-                <Text style={{ color: "#666", fontSize: 14 }}>
-                  {image ? "Image selected" : "Attach a photo"}
-                </Text>
-              </View>
-            </View>
-            {image && (
-              <View
-                style={{
-                  marginTop: 15,
-                  borderRadius: 15,
-                  overflow: "hidden",
-                }}
-              >
-                <Image
-                  source={{ uri: image }}
-                  style={{ width: "100%", height: 200 }}
-                />
-                <TouchableOpacity
-                  onPress={() => setImage(null)}
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: 20,
-                    padding: 6,
-                  }}
-                >
-                  <IconSymbol name="xmark" size={12} color="white" />
-                </TouchableOpacity>
-              </View>
-            )}
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.BackButton}
+              onPress={() => router.back()}
+            >
+              <IconSymbol name="chevron.left" size={20} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Neighborhood Feed</Text>
           </View>
-        </View>
-        <ScrollView style={{ marginTop: 30 }}>
-          <Text
-            style={{
-              color: "white",
-              fontSize: 20,
-              fontWeight: "bold",
-              marginBottom: 15,
-            }}
-          >
-            Recent Updates
-          </Text>
+
+          <Text style={styles.sectionHeaderTitle}>Recent Updates</Text>
 
           {posts.map((item) => {
             const isLiked = item.likedBy?.includes(auth.currentUser?.uid);
@@ -320,6 +259,7 @@ export default function PostEvent() {
                     {item.text}
                   </Text>
                 </View>
+
                 <Modal
                   animationType="slide"
                   transparent={true}
@@ -344,98 +284,283 @@ export default function PostEvent() {
             );
           })}
         </ScrollView>
-      </ScrollView>
+
+        <TouchableOpacity
+          style={styles.floatingActionButton}
+          onPress={() => setIsComposerVisible(true)}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={["#ffffff", "rgba(255, 255, 255, 0.6)"]}
+            style={styles.fabGradientInner}
+          >
+            <IconSymbol name="plus" size={26} color="#0191d6" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isComposerVisible}
+        onRequestClose={() => setIsComposerVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { height: "65%" }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.boldText, { fontSize: 18 }]}>
+                Create Update
+              </Text>
+              <TouchableOpacity onPress={() => setIsComposerVisible(false)}>
+                <IconSymbol name="xmark" size={22} color="#111827" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.composerCard}>
+              <TextInput
+                placeholder="Type your neighborhood update here..."
+                multiline
+                value={content}
+                onChangeText={setContent}
+                style={styles.input}
+                placeholderTextColor="#999"
+              />
+
+              {image && (
+                <View style={styles.imagePreviewBadgeContainer}>
+                  <Image
+                    source={{ uri: image }}
+                    style={styles.attachedPreviewThumbnail}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setImage(null)}
+                    style={styles.deleteAttachedImageIndicatorButton}
+                  >
+                    <IconSymbol name="xmark" size={10} color="white" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={styles.composerActionsFooterRow}>
+                <TouchableOpacity
+                  onPress={pickImage}
+                  style={styles.attachPhotoIconButton}
+                >
+                  <IconSymbol
+                    name={image ? "photo.fill" : "camera.fill"}
+                    size={20}
+                    color="#0191d6"
+                  />
+                  <Text style={styles.attachPhotoIndicatorLabelText}>
+                    {image ? "Photo Attached" : "Add Photo"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.publishActionBtn,
+                    !content.trim() &&
+                      !image &&
+                      styles.disabledPublishActionBtn,
+                  ]}
+                  onPress={handlePublish}
+                  disabled={!content.trim() && !image}
+                >
+                  <Text style={styles.buttonText}>Publish</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    marginTop: 20,
+    position: "relative",
+    width: "100%",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    marginLeft: 60,
+  },
+  sectionHeaderTitle: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
   instaCard: {
     backgroundColor: "white",
-    marginBottom: 10,
+    marginBottom: 16,
     width: "100%",
-    borderRadius: 15,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    overflow: "hidden",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 12,
+    padding: 14,
     alignItems: "center",
   },
   liveAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     marginRight: 10,
     backgroundColor: "#E5E7EB",
   },
   boldText: { fontWeight: "700" },
-  instaImage: { width: "100%", height: 350 },
-  padding12: { padding: 12 },
-  iconRow: { flexDirection: "row", gap: 15, marginBottom: 8 },
+  instaImage: { width: "100%", height: 320 },
+  padding12: { padding: 14 },
+  iconRow: { flexDirection: "row", gap: 18, marginBottom: 8 },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "white",
+    backgroundColor: "#f9fafb",
     height: "80%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingBottom: 10,
+    borderBottomColor: "#edeef0",
+    paddingBottom: 12,
+    alignItems: "center",
   },
-  container: { flex: 1, padding: 20, paddingTop: 80 },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 50,
-    marginTop: 40,
-  },
-  inputCard: {
+
+  composerCard: {
     backgroundColor: "white",
-    borderRadius: 25,
-    padding: 20,
-    height: 300,
+    borderRadius: 20,
+    padding: 16,
+    flex: 1,
     justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   input: {
-    fontSize: 18,
-    color: "#333",
-    height: "70%",
+    fontSize: 16,
+    color: "#1f2937",
+    flex: 1,
     textAlignVertical: "top",
+    minHeight: 120,
   },
-  button: {
-    backgroundColor: "#0191d6",
-    padding: 15,
-    borderRadius: 15,
+  composerActionsFooterRow: {
+    flexDirection: "row",
     alignItems: "center",
-    width: "50%",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    paddingTop: 12,
+    marginTop: 8,
   },
-  buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  attachPhotoIconButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#eff6ff",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 30,
+  },
+  attachPhotoIndicatorLabelText: {
+    color: "#0191d6",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  publishActionBtn: {
+    backgroundColor: "#0191d6",
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 30,
+    alignItems: "center",
+  },
+  disabledPublishActionBtn: {
+    backgroundColor: "#93c5fd",
+  },
+  buttonText: { color: "white", fontWeight: "bold", fontSize: 15 },
+  imagePreviewBadgeContainer: {
+    position: "relative",
+    marginVertical: 10,
+    borderRadius: 12,
+    overflow: "hidden",
+    alignSelf: "flex-start",
+  },
+  attachedPreviewThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  deleteAttachedImageIndicatorButton: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 10,
+    padding: 4,
+  },
   BackButton: {
     position: "absolute",
-    top: -20,
-    left: 20,
-    zIndex: 10,
-    backgroundColor: "rgba(235, 235, 235, 0.9)",
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    left: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  floatingActionButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: "hidden",
+  },
+  fabGradientInner: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 30,
   },
 });

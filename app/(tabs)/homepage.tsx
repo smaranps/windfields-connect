@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "../../services/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 56) / 2;
@@ -22,6 +22,7 @@ const CARD_WIDTH = (width - 56) / 2;
 export default function TabTwoScreen() {
   const [userName, setUserName] = useState("User");
   const [searchQuery, setSearchQuery] = useState("");
+  const [hasUnread, setHasUnread] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,6 +37,66 @@ export default function TabTwoScreen() {
       }
     };
     fetchUser();
+  }, []);
+
+  // Fetch current user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setUserName(docSnap.data().username);
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) return;
+
+    const chatsRef = collection(db, "chats");
+
+    const unsubscribe = onSnapshot(chatsRef, (snapshot) => {
+      let unreadFound = false;
+
+      snapshot.forEach((doc) => {
+        const chatData = doc.data();
+
+        const isUserInvolved =
+          chatData.buyerId === currentUserId ||
+          chatData.sellerId === currentUserId;
+
+        let lastSenderIsPartner = false;
+
+        if (chatData.lastSenderId) {
+          lastSenderIsPartner = chatData.lastSenderId !== currentUserId;
+        } else if (chatData.lastMessage) {
+          const isMeSeller = chatData.sellerId === currentUserId;
+
+          if (isMeSeller) {
+            lastSenderIsPartner = true;
+          } else {
+            const isInitialTemplate = chatData.lastMessage.startsWith(
+              "Is this still available"
+            );
+            lastSenderIsPartner = !isInitialTemplate;
+          }
+        }
+
+        if (isUserInvolved && lastSenderIsPartner) {
+          unreadFound = true;
+        }
+      });
+
+      console.log("Unread messages status updated to:", unreadFound);
+      setHasUnread(unreadFound);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const postImage =
@@ -182,20 +243,20 @@ export default function TabTwoScreen() {
 
           <TouchableOpacity
             style={styles.contentCard}
-            onPress={() => router.push("/signup")}
+            onPress={() => router.push("/marketplace_items")}
           >
             <Image
               source={{
-                uri: "https://static.vecteezy.com/system/resources/previews/009/262/854/non_2x/bright-decorative-background-with-mandala-pattern-blank-for-postcard-invitation-banner-with-place-for-text-illustration-vector.jpg",
+                uri: "https://images.unsplash.com/photo-1664455340023-214c33a9d0bd?q=80&w=2232&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
               }}
               style={styles.cardImage}
             />
             <View style={styles.cardFooter}>
-              <Text style={styles.cardTitle}>Invite</Text>
+              <Text style={styles.cardTitle}>Marketplace</Text>
               <View style={[styles.brandPill, { backgroundColor: "#FFF9E6" }]}>
-                <IconSymbol name="envelope.fill" size={11} color="#FFCC00" />
+                <IconSymbol name="cart.fill" size={13} color="#FFCC00" />
                 <Text style={[styles.brandPillText, { color: "#FFCC00" }]}>
-                  Private
+                  Check the Listing
                 </Text>
                 <IconSymbol
                   name="chevron.right"
@@ -226,6 +287,23 @@ export default function TabTwoScreen() {
             />
             <View>
               <Text style={styles.utilTitle}>News Feed</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.utilRowButton}
+            onPress={() => router.push("/inbox")}
+          >
+            <View style={{ position: "relative" }}>
+              <IconSymbol
+                name="bubble.left.and.bubble.right.fill"
+                size={22}
+                color="#0191d6"
+              />
+              {hasUnread && <View style={styles.redDot} />}
+            </View>
+            <View>
+              <Text style={styles.utilTitle}>Inbox</Text>
             </View>
           </TouchableOpacity>
 
@@ -390,7 +468,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   horizontalScroll: {
-    gap: 16,
+    gap: 4,
   },
   utilRowButton: {
     flexDirection: "row",
@@ -399,7 +477,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 18,
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
@@ -412,5 +490,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#1F2937",
+  },
+
+  redDot: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: "#EF4444",
+    borderWidth: 1.5,
+    borderColor: "white",
   },
 });

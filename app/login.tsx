@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -10,20 +10,33 @@ import {
   Alert,
   Dimensions,
 } from "react-native";
-import { auth } from "../services/firebaseConfig";
+import { doc, getDoc, setDoc, collection, addDoc } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
+import { auth, db } from "../services/firebaseConfig";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BlurView } from "expo-blur";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
 
-export default function Signup() {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [secureText, setSecureText] = useState(true);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        "460155358748-1gqevqe05m0vdlmvn8ci2ha50ciicv48.apps.googleusercontent.com",
+    });
+  }, []);
 
   const onLoginPressed = async () => {
     if (!email || !password) {
@@ -33,10 +46,88 @@ export default function Signup() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      console.log("Logged in successfully!");
+      console.log("Logged in successfully.");
       router.replace("/(tabs)/homepage");
     } catch (error: any) {
       Alert.alert("Login Error", error.message);
+    }
+  };
+
+  const generateUsername = (displayName: string | null, email: string) => {
+    if (displayName) {
+      return displayName.toLowerCase().replace(/\s+/g, "");
+    }
+    return email.split("@")[0].toLowerCase();
+  };
+
+  const onGoogleLoginPressed = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+
+      if (!idToken) throw new Error("Error. Please try again.");
+
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      const userCredential = await signInWithCredential(auth, credential);
+      const user = userCredential.user;
+
+      console.log("Logged in with Google successfully!");
+
+      const currentName = user.displayName || "";
+      let finalUsername = currentName;
+
+      if (!currentName || currentName.includes(" ")) {
+        finalUsername = generateUsername(currentName, user.email || "");
+
+        await updateProfile(user, {
+          displayName: finalUsername,
+        });
+
+        await user.reload();
+        console.log("Default username updated to:", finalUsername);
+      }
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          username: finalUsername,
+          createdAt: new Date().toISOString(),
+        });
+        if (user.email) {
+          await addDoc(collection(db, "mail"), {
+            to: user.email,
+            message: {
+              subject: "Welcome to Windfields Connect! 🏡",
+              text: `Hi ${finalUsername}! Welcome to the Windfields community. We are absolutely thrilled to have you here!`,
+              html: `
+                <div style="font-family: sans-serif; padding: 20px; color: #333;">
+                  <h2>Welcome to the neighborhood, ${finalUsername}! 👋</h2>
+                  <p>We are so excited to welcome you to <strong>Windfields Connect</strong>.</p>
+                  <p>Our community is built on helping neighbors connect, share updates, and stay informed about everything happening around Oshawa.</p>
+                  <br />
+                  <p>Cheers,</p>
+                  <p><strong>The Windfields Connect Team</strong></p>
+                </div>
+              `,
+            },
+          });
+        }
+      }
+
+      router.replace("/(tabs)/homepage");
+    } catch (error: any) {
+      if (error.code !== "12501") {
+        Alert.alert("Google Sign-In Error", error.message);
+      }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -60,13 +151,13 @@ export default function Signup() {
           <BlurView tint="light" intensity={75} style={styles.card}>
             <View style={styles.iconHeader}>
               <IconSymbol
-                name="rectangle.portrait.and.arrow.forward"
+                name="person.crop.circle.fill"
                 size={24}
                 color="#111827"
               />
             </View>
 
-            <Text style={styles.title}>Sign in with email</Text>
+            <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>
               Connect with your local grid to track live safety alerts and
               community events.
@@ -123,7 +214,22 @@ export default function Signup() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={onLoginPressed} style={styles.button}>
-              <Text style={styles.buttonText}>Get Started</Text>
+              <Text style={styles.buttonText}>Sign In</Text>
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              onPress={onGoogleLoginPressed}
+              style={[styles.googleButton, isGoogleLoading && { opacity: 0.6 }]}
+              disabled={isGoogleLoading}
+            >
+              <FontAwesome name="google" size={18} color="#1C1C1E" />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity>
           </BlurView>
         </View>
@@ -242,5 +348,43 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
     fontSize: 16,
+  },
+
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginVertical: 18,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(28, 28, 30, 0.15)",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    color: "#48484A",
+    fontWeight: "600",
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+    height: 52,
+    borderRadius: 14,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  googleButtonText: {
+    color: "#1C1C1E",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

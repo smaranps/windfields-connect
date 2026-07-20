@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -10,13 +10,21 @@ import {
   Alert,
   Dimensions,
 } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+
 import { auth, db } from "../services/firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, addDoc, collection, getDoc } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BlurView } from "expo-blur";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import {
+  GoogleAuthProvider,
+  signInWithCredential,
+  updateProfile,
+} from "firebase/auth";
 
 const { height } = Dimensions.get("window");
 
@@ -26,6 +34,13 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [secureText, setSecureText] = useState(true);
   const router = useRouter();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        "460155358748-1gqevqe05m0vdlmvn8ci2ha50ciicv48.apps.googleusercontent.com",
+    });
+  }, []);
 
   const onRegisterPressed = async () => {
     if (!email || !password || !name) {
@@ -57,6 +72,84 @@ export default function Signup() {
     } catch (error: any) {
       console.error("Error signing up: ", error.message);
       Alert.alert("Signup Error", error.message);
+    }
+  };
+
+  const generateUsername = (displayName: string | null, email: string) => {
+    if (displayName) {
+      return displayName.toLowerCase().replace(/\s+/g, "");
+    }
+    return email.split("@")[0].toLowerCase();
+  };
+
+  const onGoogleLoginPressed = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+
+      if (!idToken) throw new Error("Error. Please try again.");
+
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      const userCredential = await signInWithCredential(auth, credential);
+      const user = userCredential.user;
+
+      console.log("Logged in with Google successfully!");
+
+      const currentName = user.displayName || "";
+      let finalUsername = currentName;
+
+      if (!currentName || currentName.includes(" ")) {
+        finalUsername = generateUsername(currentName, user.email || "");
+
+        await updateProfile(user, {
+          displayName: finalUsername,
+        });
+
+        await user.reload();
+        console.log("Default username updated to:", finalUsername);
+      }
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          username: finalUsername,
+          createdAt: new Date().toISOString(),
+        });
+        if (user.email) {
+          await addDoc(collection(db, "mail"), {
+            to: user.email,
+            message: {
+              subject: "Welcome to Windfields Connect! 🏡",
+              text: `Hi ${finalUsername}! Welcome to the Windfields community. We are absolutely thrilled to have you here!`,
+              html: `
+                <div style="font-family: sans-serif; padding: 20px; color: #333;">
+                  <h2>Welcome to the neighborhood, ${finalUsername}! 👋</h2>
+                  <p>We are so excited to welcome you to <strong>Windfields Connect</strong>.</p>
+                  <p>Our community is built on helping neighbors connect, share updates, and stay informed about everything happening around Oshawa.</p>
+                  <br />
+                  <p>Cheers,</p>
+                  <p><strong>The Windfields Connect Team</strong></p>
+                </div>
+              `,
+            },
+          });
+        }
+      }
+
+      router.replace("/(tabs)/homepage");
+    } catch (error: any) {
+      if (error.code !== "12501") {
+        Alert.alert("Google Sign-In Error", error.message);
+      }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -150,6 +243,20 @@ export default function Signup() {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              onPress={onGoogleLoginPressed}
+              style={[styles.googleButton, isGoogleLoading && { opacity: 0.6 }]}
+              disabled={isGoogleLoading}
+            >
+              <FontAwesome name="google" size={18} color="#1C1C1E" />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={onRegisterPressed} style={styles.button}>
               <Text style={styles.buttonText}>Get Started</Text>
             </TouchableOpacity>
@@ -262,5 +369,42 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
     fontSize: 16,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+    height: 52,
+    borderRadius: 14,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  googleButtonText: {
+    color: "#1C1C1E",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginVertical: 18,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(28, 28, 30, 0.15)",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    color: "#48484A",
+    fontWeight: "600",
   },
 });

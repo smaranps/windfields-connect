@@ -15,7 +15,7 @@ import {
   Image,
 } from "react-native";
 import { auth, db, storage } from "../../services/firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -85,9 +85,13 @@ export default function ProfileScreen() {
 
       await uploadBytes(storageRef, blob);
       const downloadUrl = await getDownloadURL(storageRef);
-      await updateDoc(doc(db, "users", uid), {
-        profilePicUrl: downloadUrl,
-      });
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          profilePicUrl: downloadUrl,
+        },
+        { merge: true }
+      );
 
       setProfilePic(downloadUrl);
       Alert.alert("Success", "Profile photo updated!");
@@ -113,10 +117,14 @@ export default function ProfileScreen() {
 
     try {
       const finalUsername = newUsername || username;
-      await updateDoc(doc(db, "users", uid), {
-        username: finalUsername,
-        bio: bio,
-      });
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          username: finalUsername,
+          bio: bio,
+        },
+        { merge: true }
+      );
       setUsername(finalUsername);
       setNewUsername("");
       Alert.alert("Success", "Profile details updated!");
@@ -278,7 +286,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#0191d6",
+    backgroundColor: "gainsboro",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 4,

@@ -9,8 +9,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Calendar } from "react-native-calendars";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { db } from "../services/firebaseConfig";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../services/firebaseConfig";
+import { collection, query, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { Stack, router } from "expo-router";
 
 export default function CalendarViewScreen() {
@@ -19,17 +19,47 @@ export default function CalendarViewScreen() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const currentUserUid = auth.currentUser?.uid;
 
   useEffect(() => {
+    if (!currentUserUid) return;
+
     const q = query(collection(db, "events"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedEvents = snapshot.docs.map((doc) => ({
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const allEvents = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setEvents(fetchedEvents);
+
+      const filterPromises = allEvents.map(async (event) => {
+        try {
+          const rsvpDocRef = doc(
+            db,
+            "events",
+            event.id,
+            "rsvps",
+            currentUserUid
+          );
+          const rsvpSnap = await getDoc(rsvpDocRef);
+
+          if (rsvpSnap.exists() && rsvpSnap.data().status === "going") {
+            return event;
+          }
+        } catch (error) {
+          console.error("Error checking RSVP for event:", event.id, error);
+        }
+        return null;
+      });
+
+      const verifiedAttendingEvents = (
+        await Promise.all(filterPromises)
+      ).filter((event): event is any => event !== null);
+
+      setEvents(verifiedAttendingEvents);
+
       const marks: { [key: string]: any } = {};
-      fetchedEvents.forEach((event: any) => {
+      verifiedAttendingEvents.forEach((event: any) => {
         if (event.rawDateString) {
           marks[event.rawDateString] = { marked: true, dotColor: "#0191d6" };
         }
@@ -38,10 +68,12 @@ export default function CalendarViewScreen() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUserUid]);
+
   const filteredEvents = events.filter(
     (event) => event.rawDateString === selectedDate
   );
+
   const getCombinedMarkedDates = () => {
     return {
       ...markedDates,
@@ -52,7 +84,6 @@ export default function CalendarViewScreen() {
       },
     };
   };
-
   return (
     <LinearGradient colors={["#0191d6", "#06c9c1"]} style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
