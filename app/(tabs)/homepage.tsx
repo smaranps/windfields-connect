@@ -39,7 +39,6 @@ export default function TabTwoScreen() {
     fetchUser();
   }, []);
 
-  // Fetch current user data
   useEffect(() => {
     const fetchUser = async () => {
       const user = auth.currentUser;
@@ -277,7 +276,7 @@ export default function TabTwoScreen() {
         >
           <TouchableOpacity
             style={styles.utilRowButton}
-            onPress={() => router.push("/signup")}
+            onPress={() => router.push("/news")}
           >
             <Image
               source={{
