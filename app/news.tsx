@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { Stack } from "expo-router";
 
 interface NewsArticle {
@@ -76,7 +76,12 @@ export default function GlassNewsScreen() {
             <Image source={{ uri: item.image_url }} style={styles.cardImage} />
           ) : (
             <View style={[styles.cardImage, styles.placeholderImage]}>
-              <IconSymbol name="newspaper" size={24} color="#FFFFFF" />
+              <AppIcon
+                sfName="newspaper"
+                lucideName="Newspaper"
+                size={24}
+                color="#FFFFFF"
+              />
             </View>
           )}
 
@@ -114,7 +119,6 @@ export default function GlassNewsScreen() {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
         <Stack.Screen options={{ headerShown: false }} />
-        
 
         <BlurView intensity={35} tint="light" style={styles.headerGlass}>
           <Text style={styles.headerTitle}>Local News & Updates</Text>

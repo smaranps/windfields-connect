@@ -17,7 +17,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, addDoc, collection, getDoc } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { BlurView } from "expo-blur";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import {
@@ -35,6 +35,7 @@ export default function Signup() {
   const [secureText, setSecureText] = useState(true);
   const router = useRouter();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
@@ -55,20 +56,33 @@ export default function Signup() {
         password
       );
       const user = userCredential.user;
-
       await setDoc(doc(db, "users", user.uid), {
         username: name,
         email: email,
         neighborhood: "Windfields",
         createdAt: new Date().toISOString(),
         points: 0,
+        blockedUsers: [],
+      });
+      await addDoc(collection(db, "mail"), {
+        to: email,
+        message: {
+          subject: "Welcome to Windfields Connect! 🏡",
+          text: `Hi ${name}! Welcome to the Windfields community. We are thrilled to have you here!`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; color: #333;">
+              <h2>Welcome to the neighborhood, ${name}! 👋</h2>
+              <p>We are so excited to welcome you to <strong>Windfields Connect</strong>.</p>
+              <p>Our community is built on helping neighbors connect, share updates, and stay informed about everything happening around Oshawa.</p>
+              <br />
+              <p>Cheers,</p>
+              <p><strong>The Windfields Connect Team</strong></p>
+            </div>
+          `,
+        },
       });
 
-      console.log("User registered and data recorded!");
-
-      Alert.alert("Success", "Account created!", [
-        { text: "OK", onPress: () => router.replace("/(tabs)") },
-      ]);
+      router.replace("/(tabs)");
     } catch (error: any) {
       console.error("Error signing up: ", error.message);
       Alert.alert("Signup Error", error.message);
@@ -92,11 +106,8 @@ export default function Signup() {
       if (!idToken) throw new Error("Error. Please try again.");
 
       const credential = GoogleAuthProvider.credential(idToken);
-
       const userCredential = await signInWithCredential(auth, credential);
       const user = userCredential.user;
-
-      console.log("Logged in with Google successfully!");
 
       const currentName = user.displayName || "";
       let finalUsername = currentName;
@@ -109,7 +120,6 @@ export default function Signup() {
         });
 
         await user.reload();
-        console.log("Default username updated to:", finalUsername);
       }
 
       const userDocRef = doc(db, "users", user.uid);
@@ -121,13 +131,14 @@ export default function Signup() {
           email: user.email,
           username: finalUsername,
           createdAt: new Date().toISOString(),
+          blockedUsers: [],
         });
         if (user.email) {
           await addDoc(collection(db, "mail"), {
             to: user.email,
             message: {
               subject: "Welcome to Windfields Connect! 🏡",
-              text: `Hi ${finalUsername}! Welcome to the Windfields community. We are absolutely thrilled to have you here!`,
+              text: `Hi ${finalUsername}! Welcome to the Windfields community. We are thrilled to have you here!`,
               html: `
                 <div style="font-family: sans-serif; padding: 20px; color: #333;">
                   <h2>Welcome to the neighborhood, ${finalUsername}! 👋</h2>
@@ -143,7 +154,7 @@ export default function Signup() {
         }
       }
 
-      router.replace("/(tabs)/homepage");
+      router.replace("/(tabs)");
     } catch (error: any) {
       if (error.code !== "12501") {
         Alert.alert("Google Sign-In Error", error.message);
@@ -166,13 +177,23 @@ export default function Signup() {
           style={styles.BackButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={20} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={20}
+            color="#111827"
+          />
         </TouchableOpacity>
 
         <View style={styles.glassWrapper}>
           <BlurView tint="light" intensity={75} style={styles.card}>
             <View style={styles.iconHeader}>
-              <IconSymbol name="person.badge.plus" size={24} color="#111827" />
+              <AppIcon
+                sfName="person.badge.plus"
+                lucideName="UserPlus"
+                size={24}
+                color="#111827"
+              />
             </View>
 
             <Text style={styles.title}>Create Account</Text>
@@ -182,12 +203,14 @@ export default function Signup() {
             </Text>
 
             <View style={styles.inputContainer}>
-              <IconSymbol
-                name="person.fill"
-                size={16}
-                color="#8E8E93"
-                style={styles.inputIcon}
-              />
+              <View style={styles.inputIcon}>
+                <AppIcon
+                  sfName="person.fill"
+                  lucideName="User"
+                  size={16}
+                  color="#8E8E93"
+                />
+              </View>
               <TextInput
                 placeholder="Full Name"
                 placeholderTextColor="#8E8E93"
@@ -198,12 +221,14 @@ export default function Signup() {
             </View>
 
             <View style={styles.inputContainer}>
-              <IconSymbol
-                name="envelope.fill"
-                size={16}
-                color="#8E8E93"
-                style={styles.inputIcon}
-              />
+              <View style={styles.inputIcon}>
+                <AppIcon
+                  sfName="envelope.fill"
+                  lucideName="Mail"
+                  size={16}
+                  color="#8E8E93"
+                />
+              </View>
               <TextInput
                 placeholder="Email"
                 placeholderTextColor="#8E8E93"
@@ -216,12 +241,14 @@ export default function Signup() {
             </View>
 
             <View style={styles.inputContainer}>
-              <IconSymbol
-                name="lock.fill"
-                size={16}
-                color="#8E8E93"
-                style={styles.inputIcon}
-              />
+              <View style={styles.inputIcon}>
+                <AppIcon
+                  sfName="lock.fill"
+                  lucideName="Lock"
+                  size={16}
+                  color="#8E8E93"
+                />
+              </View>
               <TextInput
                 placeholder="Password"
                 placeholderTextColor="#8E8E93"
@@ -235,13 +262,18 @@ export default function Signup() {
                 onPress={() => setSecureText(!secureText)}
                 style={styles.eyeIcon}
               >
-                <IconSymbol
-                  name={secureText ? "eye.slash.fill" : "eye.fill"}
+                <AppIcon
+                  sfName={secureText ? "eye.slash.fill" : "eye.fill"}
+                  lucideName={secureText ? "EyeOff" : "Eye"}
                   size={16}
                   color="#8E8E93"
                 />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity onPress={onRegisterPressed} style={styles.button}>
+              <Text style={styles.buttonText}>Get Started</Text>
+            </TouchableOpacity>
 
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
@@ -256,9 +288,6 @@ export default function Signup() {
             >
               <FontAwesome name="google" size={18} color="#1C1C1E" />
               <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onRegisterPressed} style={styles.button}>
-              <Text style={styles.buttonText}>Get Started</Text>
             </TouchableOpacity>
           </BlurView>
         </View>

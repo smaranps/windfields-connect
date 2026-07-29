@@ -12,7 +12,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { auth, db } from "../../services/firebaseConfig";
 import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 
@@ -24,20 +24,6 @@ export default function TabTwoScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [hasUnread, setHasUnread] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setUserName(docSnap.data().username);
-        }
-      }
-    };
-    fetchUser();
-  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -123,8 +109,9 @@ export default function TabTwoScreen() {
             style={styles.notificationBadge}
             onPress={() => router.push("/maps")}
           >
-            <IconSymbol
-              name="exclamationmark.triangle.fill"
+            <AppIcon
+              sfName="exclamationmark.triangle.fill"
+              lucideName="AlertTriangle"
               size={18}
               color="white"
             />
@@ -132,12 +119,14 @@ export default function TabTwoScreen() {
         </View>
 
         <View style={styles.searchBarContainer}>
-          <IconSymbol
-            name="magnifyingglass"
-            size={16}
-            color="#8E8E93"
-            style={styles.searchIcon}
-          />
+          <View style={styles.searchIcon}>
+            <AppIcon
+              sfName="magnifyingglass"
+              lucideName="Search"
+              size={16}
+              color="#8E8E93"
+            />
+          </View>
           <TextInput
             placeholder="Search events, alerts, or posts..."
             placeholderTextColor="#8E8E93"
@@ -168,16 +157,18 @@ export default function TabTwoScreen() {
             <View style={styles.cardFooter}>
               <Text style={styles.cardTitle}>Post</Text>
               <View style={[styles.brandPill, { backgroundColor: "#FFEFE6" }]}>
-                <IconSymbol
-                  name="square.and.pencil"
+                <AppIcon
+                  sfName="square.and.pencil"
+                  lucideName="SquarePen"
                   size={11}
                   color="#FF6A00"
                 />
                 <Text style={[styles.brandPillText, { color: "#FF6A00" }]}>
                   Create
                 </Text>
-                <IconSymbol
-                  name="chevron.right"
+                <AppIcon
+                  sfName="chevron.right"
+                  lucideName="ChevronRight"
                   size={10}
                   color="#FF6A00"
                   style={styles.arrowIcon}
@@ -199,12 +190,18 @@ export default function TabTwoScreen() {
             <View style={styles.cardFooter}>
               <Text style={styles.cardTitle}>Event</Text>
               <View style={[styles.brandPill, { backgroundColor: "#EBF5FF" }]}>
-                <IconSymbol name="calendar" size={11} color="#007AFF" />
+                <AppIcon
+                  sfName="calendar"
+                  lucideName="Calendar"
+                  size={11}
+                  color="#007AFF"
+                />
                 <Text style={[styles.brandPillText, { color: "#007AFF" }]}>
                   Schedule
                 </Text>
-                <IconSymbol
-                  name="chevron.right"
+                <AppIcon
+                  sfName="chevron.right"
+                  lucideName="ChevronRight"
                   size={10}
                   color="#007AFF"
                   style={styles.arrowIcon}
@@ -226,12 +223,18 @@ export default function TabTwoScreen() {
             <View style={styles.cardFooter}>
               <Text style={styles.cardTitle}>My Calendar</Text>
               <View style={[styles.brandPill, { backgroundColor: "#EAFCEF" }]}>
-                <IconSymbol name="clock.fill" size={11} color="#34C759" />
+                <AppIcon
+                  sfName="clock.fill"
+                  lucideName="Clock"
+                  size={11}
+                  color="#34C759"
+                />
                 <Text style={[styles.brandPillText, { color: "#34C759" }]}>
                   Agenda
                 </Text>
-                <IconSymbol
-                  name="chevron.right"
+                <AppIcon
+                  sfName="chevron.right"
+                  lucideName="ChevronRight"
                   size={10}
                   color="#34C759"
                   style={styles.arrowIcon}
@@ -253,12 +256,18 @@ export default function TabTwoScreen() {
             <View style={styles.cardFooter}>
               <Text style={styles.cardTitle}>Marketplace</Text>
               <View style={[styles.brandPill, { backgroundColor: "#FFF9E6" }]}>
-                <IconSymbol name="cart.fill" size={13} color="#FFCC00" />
+                <AppIcon
+                  sfName="cart.fill"
+                  lucideName="ShoppingCart"
+                  size={13}
+                  color="#FFCC00"
+                />
                 <Text style={[styles.brandPillText, { color: "#FFCC00" }]}>
                   Check the Listing
                 </Text>
-                <IconSymbol
-                  name="chevron.right"
+                <AppIcon
+                  sfName="chevron.right"
+                  lucideName="ChevronRight"
                   size={10}
                   color="#FFCC00"
                   style={styles.arrowIcon}
@@ -294,8 +303,9 @@ export default function TabTwoScreen() {
             onPress={() => router.push("/inbox")}
           >
             <View style={{ position: "relative" }}>
-              <IconSymbol
-                name="bubble.left.and.bubble.right.fill"
+              <AppIcon
+                sfName="bubble.left.and.bubble.right.fill"
+                lucideName="MessageSquare"
                 size={22}
                 color="#0191d6"
               />
@@ -320,7 +330,12 @@ export default function TabTwoScreen() {
                 },
               ]}
             >
-              <IconSymbol name="map.fill" size={18} color="#007AFF" />
+              <AppIcon
+                sfName="map.fill"
+                lucideName="Map"
+                size={18}
+                color="#007AFF"
+              />
             </View>
             <View>
               <Text style={styles.utilTitle}>Live Map</Text>
@@ -490,7 +505,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1F2937",
   },
-
   redDot: {
     position: "absolute",
     top: -4,

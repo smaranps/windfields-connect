@@ -11,10 +11,16 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Keyboard,
+  Platform,
 } from "react-native";
 import { Stack, router } from "expo-router";
 import { doc, deleteDoc } from "firebase/firestore";
-import MapView, { Marker, Callout, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, {
+  Marker,
+  Callout,
+  PROVIDER_GOOGLE,
+  PROVIDER_DEFAULT,
+} from "react-native-maps";
 import { db, auth } from "../services/firebaseConfig";
 import {
   collection,
@@ -24,7 +30,7 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 
 const INITIAL_REGION = {
   latitude: 43.8975,
@@ -63,6 +69,7 @@ export default function SafetyMapScreen() {
     setSelectedCoords(coordinate);
     setModalVisible(true);
   };
+
   const handleCreateAlert = async () => {
     if (!newTitle.trim() || !newDescription.trim() || !selectedCoords) {
       Alert.alert("Missing Info", "Please fill out all fields.");
@@ -122,7 +129,10 @@ export default function SafetyMapScreen() {
       ) : (
         <MapView
           style={styles.map}
-          provider={PROVIDER_DEFAULT}
+          // Automatically uses Google Maps on Android and Apple Maps on iOS
+          provider={
+            Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
+          }
           initialRegion={INITIAL_REGION}
           onLongPress={handleMapLongPress}
           showsUserLocation={true}
@@ -144,12 +154,13 @@ export default function SafetyMapScreen() {
                 <Callout tooltip>
                   <View style={styles.calloutBubble}>
                     <View style={styles.calloutHeader}>
-                      <IconSymbol
-                        name={
+                      <AppIcon
+                        sfName={
                           isUrgent
                             ? "exclamationmark.triangle.fill"
                             : "info.circle.fill"
                         }
+                        lucideName={isUrgent ? "AlertTriangle" : "Info"}
                         size={16}
                         color={pinColor}
                       />
@@ -162,7 +173,12 @@ export default function SafetyMapScreen() {
                       style={styles.calloutDeleteButton}
                       onPress={() => handleDeleteAlert(alert.id)}
                     >
-                      <IconSymbol name="trash.fill" size={12} color="#EF4444" />
+                      <AppIcon
+                        sfName="trash.fill"
+                        lucideName="Trash2"
+                        size={12}
+                        color="#EF4444"
+                      />
                       <Text style={styles.deleteText}>Remove Pin</Text>
                     </TouchableOpacity>
 
@@ -179,7 +195,12 @@ export default function SafetyMapScreen() {
         </MapView>
       )}
       <TouchableOpacity style={styles.BackButton} onPress={() => router.back()}>
-        <IconSymbol name="chevron.left" size={20} color="#111827" />
+        <AppIcon
+          sfName="chevron.left"
+          lucideName="ChevronLeft"
+          size={20}
+          color="#111827"
+        />
       </TouchableOpacity>
 
       <View style={styles.floatingHeader}>
@@ -276,7 +297,7 @@ const styles = StyleSheet.create({
   floatingHeader: {
     position: "absolute",
     top: 60,
-    left: 20,
+    left: 70,
     right: 20,
     backgroundColor: "rgba(255, 255, 255, 0.95)",
     padding: 14,
@@ -293,8 +314,8 @@ const styles = StyleSheet.create({
     color: "#0191d6",
     marginTop: 2,
     fontWeight: "600",
+    textAlign: "center",
   },
-
   calloutBubble: {
     backgroundColor: "white",
     borderRadius: 12,
@@ -318,7 +339,6 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   calloutTime: { fontSize: 11, color: "#9CA3AF", fontWeight: "500" },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

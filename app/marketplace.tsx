@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import * as ImagePicker from "expo-image-picker";
 import { db, auth, storage } from "../services/firebaseConfig";
 import { generateListingDetails } from "../services/geminiConfig";
@@ -203,7 +203,12 @@ export default function AddListing() {
             style={styles.BackButton}
             onPress={() => router.back()}
           >
-            <IconSymbol name="chevron.left" size={20} color="white" />
+            <AppIcon
+              sfName="chevron.left"
+              lucideName="ChevronLeft"
+              size={20}
+              color="white"
+            />
           </TouchableOpacity>
 
           <Text style={styles.title}>
@@ -217,7 +222,12 @@ export default function AddListing() {
               ) : (
                 <View style={{ alignItems: "center" }}>
                   <View style={styles.cameraIconContainer}>
-                    <IconSymbol name="camera.fill" size={26} color="white" />
+                    <AppIcon
+                      sfName="camera.fill"
+                      lucideName="Camera"
+                      size={26}
+                      color="white"
+                    />
                   </View>
                   <Text style={styles.uploadText}>Add a photo</Text>
                 </View>
@@ -246,12 +256,14 @@ export default function AddListing() {
                   </View>
                 ) : (
                   <View style={styles.aiContent}>
-                    <IconSymbol
-                      name="sparkles"
-                      size={16}
-                      color="white"
-                      style={{ marginRight: 8 }}
-                    />
+                    <View style={{ marginRight: 8 }}>
+                      <AppIcon
+                        sfName="sparkles"
+                        lucideName="Sparkles"
+                        size={16}
+                        color="white"
+                      />
+                    </View>
                     <Text style={styles.aiButtonText}>
                       Auto-Fill Details with Gemini
                     </Text>
@@ -373,7 +385,6 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "cover",
   },
-  // High-fidelity Neon/Glass AI Button
   aiButton: {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderRadius: 20,
@@ -423,7 +434,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
-
   input: {
     backgroundColor: "rgba(255, 255, 255, 0.07)",
     borderWidth: 1,
@@ -433,7 +443,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
   },
-
   button: {
     backgroundColor: "white",
     padding: 18,

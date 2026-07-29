@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Calendar } from "react-native-calendars";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { db, auth } from "../services/firebaseConfig";
 import { collection, query, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { Stack, router } from "expo-router";
@@ -84,6 +84,7 @@ export default function CalendarViewScreen() {
       },
     };
   };
+
   return (
     <LinearGradient colors={["#0191d6", "#06c9c1"]} style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -92,7 +93,12 @@ export default function CalendarViewScreen() {
           style={styles.BackButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={20} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={20}
+            color="#111827"
+          />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Community Calendar</Text>
 
@@ -141,12 +147,18 @@ export default function CalendarViewScreen() {
               ) : null}
 
               <View style={styles.infoBadge}>
-                <IconSymbol name="clock" size={14} color="#0191d6" />
+                <AppIcon
+                  sfName="clock"
+                  lucideName="Clock"
+                  size={14}
+                  color="#0191d6"
+                />
                 <Text style={styles.badgeText}>{item.time}</Text>
               </View>
               <View style={[styles.infoBadge, { marginTop: 6 }]}>
-                <IconSymbol
-                  name="mappin.and.ellipse"
+                <AppIcon
+                  sfName="mappin.and.ellipse"
+                  lucideName="MapPin"
                   size={14}
                   color="#06c9c1"
                 />

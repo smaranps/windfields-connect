@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 
 export default function TabLayout() {
   return (
@@ -19,7 +19,7 @@ export default function TabLayout() {
           alignItems: "center",
           height: 65,
           paddingBottom: 0,
-          transform: [{ translateY: Platform.OS === 'ios' ? 10 : 0 }]
+          transform: [{ translateY: Platform.OS === "ios" ? 10 : 0 }],
         },
 
         tabBarBackground: () => (
@@ -37,7 +37,12 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ color }) => (
-            <IconSymbol name="house.fill" size={34} color={color} />
+            <AppIcon
+              sfName="house.fill"
+              lucideName="Home"
+              size={34}
+              color={color}
+            />
           ),
         }}
       />
@@ -46,7 +51,12 @@ export default function TabLayout() {
         name="homepage"
         options={{
           tabBarIcon: ({ color }) => (
-            <IconSymbol name="list.bullet.rectangle" size={34} color={color} />
+            <AppIcon
+              sfName="list.bullet.rectangle"
+              lucideName="List"
+              size={34}
+              color={color}
+            />
           ),
         }}
       />
@@ -54,8 +64,9 @@ export default function TabLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ color }) => (
-            <IconSymbol
-              name="person.crop.circle.fill"
+            <AppIcon
+              sfName="person.crop.circle.fill"
+              lucideName="User"
               size={34}
               color={color}
             />

@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { db, auth } from "../services/firebaseConfig";
 import {
   collection,
@@ -158,7 +158,12 @@ export default function InboxScreen() {
           </Text>
         </View>
 
-        <IconSymbol name="chevron.right" size={16} color="#9ca3af" />
+        <AppIcon
+          sfName="chevron.right"
+          lucideName="ChevronRight"
+          size={16}
+          color="#9ca3af"
+        />
       </TouchableOpacity>
     );
   };
@@ -172,7 +177,12 @@ export default function InboxScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={24} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={24}
+            color="#111827"
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Messages</Text>
         <View style={{ width: 24 }} />
@@ -184,8 +194,9 @@ export default function InboxScreen() {
         </View>
       ) : chats.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <IconSymbol
-            name="bubble.left.and.bubble.right.fill"
+          <AppIcon
+            sfName="bubble.left.and.bubble.right.fill"
+            lucideName="MessageSquare"
             size={60}
             color="#cbd5e1"
           />

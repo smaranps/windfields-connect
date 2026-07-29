@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,11 +8,31 @@ import {
   ScrollView,
   Share,
   Alert,
+  Modal,
+  TextInput,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { auth } from "../services/firebaseConfig";
+import { AppIcon } from "@/app/components/icon";
+import { auth, db } from "../services/firebaseConfig";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
+
+const REPORT_REASONS = [
+  "Inappropriate Content",
+  "Spam or Fraud",
+  "Misleading Information",
+  "Prohibited Item",
+  "Other",
+];
 
 export default function ListingDetail() {
   const router = useRouter();
@@ -22,6 +42,11 @@ export default function ListingDetail() {
 
   const isMyListing = sellerId === auth.currentUser?.uid;
 
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [selectedReason, setSelectedReason] = useState(REPORT_REASONS[0]);
+  const [additionalDetails, setAdditionalDetails] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -30,6 +55,111 @@ export default function ListingDetail() {
     } catch (error) {
       console.error("Error sharing: ", error);
     }
+  };
+
+  const handleOpenReportModal = () => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) {
+      Alert.alert(
+        "Authentication Required",
+        "Please log in to report a listing."
+      );
+      return;
+    }
+    setReportModalVisible(true);
+  };
+
+  const submitReport = async () => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) return;
+
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, "reports"), {
+        reporterId: currentUserId,
+        reportedUserId: sellerId || null,
+        targetId: id || null,
+        targetType: "marketplace_listing",
+        title: title || "",
+        reason: selectedReason,
+        details: additionalDetails.trim(),
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+
+      Alert.alert(
+        "Report Submitted",
+        "Thank you for notifying us. Our team will review this listing shortly."
+      );
+
+      setAdditionalDetails("");
+      setSelectedReason(REPORT_REASONS[0]);
+      setReportModalVisible(false);
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      Alert.alert("Error", "Failed to submit report. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBlockSeller = async () => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) {
+      Alert.alert("Authentication Required", "Please log in to block sellers.");
+      return;
+    }
+
+    if (isMyListing) return;
+
+    Alert.alert(
+      `Block @${sellerName}?`,
+      "You will no longer see posts or listings from this user.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block User",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const userRef = doc(db, "users", currentUserId);
+              await updateDoc(userRef, {
+                blockedUsers: arrayUnion(sellerId),
+              });
+              Alert.alert("User Blocked", `You have blocked @${sellerName}.`);
+              router.back();
+            } catch (error) {
+              console.error("Error blocking user:", error);
+              Alert.alert("Error", "Could not block user. Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSellerBadgePress = () => {
+    if (isMyListing) return;
+
+    Alert.alert(
+      `Seller Options: @${sellerName}`,
+      "What would you like to do?",
+      [
+        {
+          text: "Block Seller",
+          style: "destructive",
+          onPress: handleBlockSeller,
+        },
+        {
+          text: "Report Listing",
+          onPress: handleOpenReportModal,
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   const handleContactSeller = () => {
@@ -71,11 +201,16 @@ export default function ListingDetail() {
           style={styles.circularButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={20} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={20}
+            color="#111827"
+          />
         </TouchableOpacity>
 
         <View style={styles.rightActions}>
-          {isMyListing && (
+          {isMyListing ? (
             <TouchableOpacity
               style={styles.circularButton}
               onPress={() => {
@@ -92,12 +227,34 @@ export default function ListingDetail() {
                 });
               }}
             >
-              <IconSymbol name="pencil" size={18} color="#0191d6" />
+              <AppIcon
+                sfName="pencil"
+                lucideName="Pencil"
+                size={18}
+                color="#0191d6"
+              />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.circularButton}
+              onPress={handleOpenReportModal}
+            >
+              <AppIcon
+                sfName="flag.fill"
+                lucideName="Flag"
+                size={18}
+                color="#ef4444"
+              />
             </TouchableOpacity>
           )}
 
           <TouchableOpacity style={styles.circularButton} onPress={handleShare}>
-            <IconSymbol name="square.and.arrow.up" size={20} color="#111827" />
+            <AppIcon
+              sfName="square.and.arrow.up"
+              lucideName="Share"
+              size={20}
+              color="#111827"
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -111,10 +268,19 @@ export default function ListingDetail() {
         <View style={styles.detailsContainer}>
           <View style={styles.priceRow}>
             <Text style={styles.priceTag}>${price}</Text>
-            <View style={styles.sellerBadge}>
-              <IconSymbol name="person.fill" size={16} color="gray" />
+            <TouchableOpacity
+              style={styles.sellerBadge}
+              onPress={handleSellerBadgePress}
+              activeOpacity={isMyListing ? 1 : 0.7}
+            >
+              <AppIcon
+                sfName="person.fill"
+                lucideName="User"
+                size={16}
+                color="gray"
+              />
               <Text style={styles.sellerText}>Listed by {sellerName}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.itemTitle}>{title}</Text>
@@ -130,9 +296,10 @@ export default function ListingDetail() {
 
           <View style={styles.safetyBox}>
             <Text style={styles.safetyTitle}>
-              <IconSymbol
-                name="exclamationmark.triangle"
-                color={"green"}
+              <AppIcon
+                sfName="exclamationmark.triangle"
+                lucideName="AlertTriangle"
+                color="green"
                 size={16}
               />{" "}
               Safe Meetup Tip
@@ -158,8 +325,9 @@ export default function ListingDetail() {
               end={{ x: 1, y: 0 }}
               style={styles.gradientButton}
             >
-              <IconSymbol
-                name="bubble.left.and.bubble.right.fill"
+              <AppIcon
+                sfName="bubble.left.and.bubble.right.fill"
+                lucideName="MessageSquare"
                 size={18}
                 color="white"
               />
@@ -168,6 +336,97 @@ export default function ListingDetail() {
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal
+        visible={reportModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Report Listing</Text>
+                <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+                  <AppIcon
+                    sfName="xmark"
+                    lucideName="X"
+                    size={20}
+                    color="#64748b"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalSubtitle}>
+                Why are you reporting "{title}"?
+              </Text>
+
+              <View style={styles.reasonsContainer}>
+                {REPORT_REASONS.map((reason) => {
+                  const isSelected = selectedReason === reason;
+                  return (
+                    <TouchableOpacity
+                      key={reason}
+                      style={[
+                        styles.reasonChip,
+                        isSelected && styles.selectedChip,
+                      ]}
+                      onPress={() => setSelectedReason(reason)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.selectedChipText,
+                        ]}
+                      >
+                        {reason}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.inputLabel}>
+                Additional Details (Optional)
+              </Text>
+              <TextInput
+                style={styles.textArea}
+                placeholder="Provide details for our moderation team..."
+                placeholderTextColor="#94a3b8"
+                multiline
+                numberOfLines={3}
+                maxLength={300}
+                value={additionalDetails}
+                onChangeText={setAdditionalDetails}
+              />
+
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setReportModalVisible(false)}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    isSubmitting && { opacity: 0.6 },
+                  ]}
+                  onPress={submitReport}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.submitText}>
+                    {isSubmitting ? "Submitting..." : "Submit Report"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -307,5 +566,107 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#64748b",
+    marginBottom: 16,
+  },
+  reasonsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  reasonChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  selectedChip: {
+    backgroundColor: "#e0f2fe",
+    borderColor: "#0191d6",
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#475569",
+  },
+  selectedChipText: {
+    color: "#0191d6",
+    fontWeight: "700",
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#334155",
+    marginBottom: 6,
+  },
+  textArea: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
+    padding: 12,
+    height: 80,
+    textAlignVertical: "top",
+    fontSize: 14,
+    color: "#0f172a",
+    marginBottom: 20,
+  },
+  modalActionRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+  },
+  cancelText: {
+    fontWeight: "600",
+    color: "#64748b",
+    fontSize: 15,
+  },
+  submitButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+  },
+  submitText: {
+    fontWeight: "700",
+    color: "white",
+    fontSize: 15,
   },
 });

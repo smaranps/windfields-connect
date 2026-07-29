@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  Linking,
 } from "react-native";
 import { doc, getDoc, setDoc, collection, addDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
@@ -16,13 +17,15 @@ import { auth, db } from "../services/firebaseConfig";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { BlurView } from "expo-blur";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
+const PRIVACY_POLICY_URL =
+  "https://docs.google.com/document/d/1XNSjXX1dkgMa2_R4U6F2VEzY0wo5mE36It5WccZkO_A/edit?usp=sharing";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,6 +40,19 @@ export default function Login() {
         "460155358748-1gqevqe05m0vdlmvn8ci2ha50ciicv48.apps.googleusercontent.com",
     });
   }, []);
+
+  const openPrivacyPolicy = async () => {
+    try {
+      const supported = await Linking.canOpenURL(PRIVACY_POLICY_URL);
+      if (supported) {
+        await Linking.openURL(PRIVACY_POLICY_URL);
+      } else {
+        Alert.alert("Error", "Unable to open the Privacy Policy link.");
+      }
+    } catch (error) {
+      console.error("Error opening privacy policy:", error);
+    }
+  };
 
   const onLoginPressed = async () => {
     if (!email || !password) {
@@ -104,7 +120,7 @@ export default function Login() {
           await addDoc(collection(db, "mail"), {
             to: user.email,
             message: {
-              subject: "Welcome to Windfields Connect! 🏡",
+              subject: "Welcome to Windfields Connect! ",
               text: `Hi ${finalUsername}! Welcome to the Windfields community. We are absolutely thrilled to have you here!`,
               html: `
                 <div style="font-family: sans-serif; padding: 20px; color: #333;">
@@ -144,14 +160,20 @@ export default function Login() {
           style={styles.BackButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={20} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={20}
+            color="#111827"
+          />
         </TouchableOpacity>
 
         <View style={styles.glassWrapper}>
           <BlurView tint="light" intensity={75} style={styles.card}>
             <View style={styles.iconHeader}>
-              <IconSymbol
-                name="person.crop.circle.fill"
+              <AppIcon
+                sfName="person.crop.circle.fill"
+                lucideName="User"
                 size={24}
                 color="#111827"
               />
@@ -164,8 +186,9 @@ export default function Login() {
             </Text>
 
             <View style={styles.inputContainer}>
-              <IconSymbol
-                name="envelope.fill"
+              <AppIcon
+                sfName="envelope.fill"
+                lucideName="Mail"
                 size={16}
                 color="#8E8E93"
                 style={styles.inputIcon}
@@ -182,8 +205,9 @@ export default function Login() {
             </View>
 
             <View style={styles.inputContainer}>
-              <IconSymbol
-                name="lock.fill"
+              <AppIcon
+                sfName="lock.fill"
+                lucideName="Lock"
                 size={16}
                 color="#8E8E93"
                 style={styles.inputIcon}
@@ -201,8 +225,9 @@ export default function Login() {
                 onPress={() => setSecureText(!secureText)}
                 style={styles.eyeIcon}
               >
-                <IconSymbol
-                  name={secureText ? "eye.slash.fill" : "eye.fill"}
+                <AppIcon
+                  sfName={secureText ? "eye.slash.fill" : "eye.fill"}
+                  lucideName={secureText ? "EyeOff" : "Eye"}
                   size={16}
                   color="#8E8E93"
                 />
@@ -233,6 +258,16 @@ export default function Login() {
             >
               <FontAwesome name="google" size={18} color="#1C1C1E" />
               <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.privacyPolicyContainer}
+              onPress={openPrivacyPolicy}
+            >
+              <Text style={styles.privacyPolicyText}>
+                By signing in, you agree to our{" "}
+                <Text style={styles.privacyPolicyLink}>Privacy Policy</Text>
+              </Text>
             </TouchableOpacity>
           </BlurView>
         </View>
@@ -352,7 +387,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
-
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -389,5 +423,19 @@ const styles = StyleSheet.create({
     color: "#1C1C1E",
     fontSize: 16,
     fontWeight: "600",
+  },
+  privacyPolicyContainer: {
+    marginTop: 18,
+    alignItems: "center",
+  },
+  privacyPolicyText: {
+    fontSize: 12,
+    color: "#48484A",
+    textAlign: "center",
+  },
+  privacyPolicyLink: {
+    color: "#0191d6",
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
 });

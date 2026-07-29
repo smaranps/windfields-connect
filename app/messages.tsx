@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { db, auth } from "../services/firebaseConfig";
 import { generateSmartReplies } from "../services/geminiConfig";
 import {
@@ -243,10 +243,8 @@ export default function ChatScreen() {
     return () => unsubscribe();
   }, [activeChatId]);
 
-  // Add a ref at the top of your component alongside flatListRef:
   const lastProcessedMessageId = useRef<string>("");
 
-  // Update the useEffect block:
   useEffect(() => {
     if (messages.length === 0) {
       setAiReplies([]);
@@ -394,13 +392,17 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Upgraded: Semi-transparent Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={24} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={24}
+            color="#111827"
+          />
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
@@ -454,11 +456,15 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* Upgraded: Horizontal ScrollView for Gemini Smart Replies */}
       {!loading && aiReplies.length > 0 && (
         <View style={styles.smartReplyOuterContainer}>
           <View style={styles.aiLabelContainer}>
-            <IconSymbol name="sparkles" size={12} color="#0191d6" />
+            <AppIcon
+              sfName="sparkles"
+              lucideName="Sparkles"
+              size={12}
+              color="#0191d6"
+            />
             <Text style={styles.smartReplyLabel}>Gemini Smart Replies</Text>
           </View>
           <ScrollView
@@ -502,7 +508,6 @@ export default function ChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
       >
-        {/* Upgraded: Floating Pod Input Deck */}
         <View style={styles.inputWrapper}>
           <View style={styles.inputContainer}>
             <TextInput
@@ -516,7 +521,12 @@ export default function ChatScreen() {
               style={styles.sendButton}
               onPress={handleSendMessage}
             >
-              <IconSymbol name="paperplane.fill" size={18} color="white" />
+              <AppIcon
+                sfName="paperplane.fill"
+                lucideName="Send"
+                size={18}
+                color="white"
+              />
             </TouchableOpacity>
           </View>
         </View>

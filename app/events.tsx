@@ -12,7 +12,7 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { Feather } from "@expo/vector-icons";
 import { db, auth } from "../services/firebaseConfig";
 import {
@@ -101,7 +101,12 @@ const EventItem: React.FC<EventItemProps> = ({
         <Text style={styles.eventTitleText}>{item.title}</Text>
         {isMyEvent && (
           <TouchableOpacity onPress={() => onDelete(item.id)}>
-            <IconSymbol name="trash" size={18} color="#ff4444" />
+            <AppIcon
+              sfName="trash"
+              lucideName="Trash2"
+              size={18}
+              color="#ff4444"
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -112,13 +117,23 @@ const EventItem: React.FC<EventItemProps> = ({
 
       <View style={styles.badgeContainer}>
         <View style={styles.infoBadge}>
-          <IconSymbol name="calendar" size={14} color="#0191d6" />
+          <AppIcon
+            sfName="calendar"
+            lucideName="Calendar"
+            size={14}
+            color="#0191d6"
+          />
           <Text style={styles.badgeText}>
             {item.date} @ {item.time}
           </Text>
         </View>
         <View style={styles.infoBadge}>
-          <IconSymbol name="mappin.and.ellipse" size={14} color="#06c9c1" />
+          <AppIcon
+            sfName="mappin.and.ellipse"
+            lucideName="MapPin"
+            size={14}
+            color="#06c9c1"
+          />
           <Text style={styles.badgeText} numberOfLines={1}>
             {item.location}
           </Text>
@@ -394,7 +409,6 @@ export default function EventsScreen() {
         isPrivate: isPrivate,
         invitedUIDs: isPrivate ? selectedUsers.map((u) => u.uid) : [],
       });
-
       if (isPrivate && selectedUsers.length > 0) {
         await sendBackgroundEmailInvites(
           title.trim(),
@@ -404,8 +418,6 @@ export default function EventsScreen() {
           location.trim()
         );
       }
-
-      // Reset Fields
       setTitle("");
       setDescription("");
       setLocation("");
@@ -466,7 +478,12 @@ export default function EventsScreen() {
               style={styles.BackButton}
               onPress={() => router.back()}
             >
-              <IconSymbol name="chevron.left" size={20} color="#111827" />
+              <AppIcon
+                sfName="chevron.left"
+                lucideName="ChevronLeft"
+                size={20}
+                color="#111827"
+              />
             </TouchableOpacity>
             <Text style={styles.screenTitle}>Neighborhood Events</Text>
           </View>
@@ -493,7 +510,12 @@ export default function EventsScreen() {
             colors={["#ffffff", "rgba(255, 255, 255, 0.75)"]}
             style={styles.fabGradientInner}
           >
-            <IconSymbol name="plus" size={26} color="#0191d6" />
+            <AppIcon
+              sfName="plus"
+              lucideName="Plus"
+              size={26}
+              color="#0191d6"
+            />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -509,7 +531,12 @@ export default function EventsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalHeaderTitle}>Host an Event</Text>
               <TouchableOpacity onPress={() => setIsCreatorVisible(false)}>
-                <IconSymbol name="xmark" size={22} color="#111827" />
+                <AppIcon
+                  sfName="xmark"
+                  lucideName="X"
+                  size={22}
+                  color="#111827"
+                />
               </TouchableOpacity>
             </View>
 
@@ -539,7 +566,12 @@ export default function EventsScreen() {
                   style={styles.pickerSelectorButton}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <IconSymbol name="calendar" size={16} color="#0191d6" />
+                  <AppIcon
+                    sfName="calendar"
+                    lucideName="Calendar"
+                    size={16}
+                    color="#0191d6"
+                  />
                   <Text style={styles.pickerButtonText}>
                     {getFormattedDate(date)}
                   </Text>
@@ -549,7 +581,12 @@ export default function EventsScreen() {
                   style={styles.pickerSelectorButton}
                   onPress={() => setShowTimePicker(true)}
                 >
-                  <IconSymbol name="clock" size={16} color="#06c9c1" />
+                  <AppIcon
+                    sfName="clock"
+                    lucideName="Clock"
+                    size={16}
+                    color="#06c9c1"
+                  />
                   <Text style={styles.pickerButtonText}>
                     {getFormattedTime(time)}
                   </Text>

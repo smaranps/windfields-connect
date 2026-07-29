@@ -14,7 +14,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../services/firebaseConfig";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, Stack } from "expo-router";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/app/components/icon";
 import { BlurView } from "expo-blur";
 
 const { height } = Dimensions.get("window");
@@ -63,13 +63,23 @@ export default function ForgotPassword() {
           style={styles.BackButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={20} color="#111827" />
+          <AppIcon
+            sfName="chevron.left"
+            lucideName="ChevronLeft"
+            size={20}
+            color="#111827"
+          />
         </TouchableOpacity>
 
         <View style={styles.glassWrapper}>
           <BlurView tint="light" intensity={75} style={styles.card}>
             <View style={styles.iconHeader}>
-              <IconSymbol name="key.fill" size={22} color="#111827" />
+              <AppIcon
+                sfName="key.fill"
+                lucideName="Key"
+                size={22}
+                color="#111827"
+              />
             </View>
 
             <Text style={styles.title}>Reset Password</Text>
@@ -79,12 +89,14 @@ export default function ForgotPassword() {
             </Text>
 
             <View style={styles.inputContainer}>
-              <IconSymbol
-                name="envelope.fill"
-                size={16}
-                color="#8E8E93"
-                style={styles.inputIcon}
-              />
+              <View style={styles.inputIcon}>
+                <AppIcon
+                  sfName="envelope.fill"
+                  lucideName="Mail"
+                  size={16}
+                  color="#8E8E93"
+                />
+              </View>
               <TextInput
                 placeholder="Email address"
                 placeholderTextColor="#8E8E93"
