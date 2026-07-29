@@ -3,6 +3,8 @@
 git pull origin master --allow-unrelated-histories
 
 .env
+google-services.json
+
 
 .gitignore
 
