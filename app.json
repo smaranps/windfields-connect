@@ -4,7 +4,7 @@
     "slug": "windfields-connect",
     "version": "1.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "windfieldsconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -25,7 +25,12 @@
       }
     },
     "edgeToEdgeEnabled": true,
-    "predictiveBackGestureEnabled": false
+    "predictiveBackGestureEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "0c5380e2-0b06-49ab-a05e-9ae4421b2f1f"
+      }
+    }
   },
   "web": {
     "output": "static",
