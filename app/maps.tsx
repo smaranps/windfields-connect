@@ -17,7 +17,6 @@ import { Stack, router } from "expo-router";
 import { doc, deleteDoc } from "firebase/firestore";
 import MapView, {
   Marker,
-  Callout,
   PROVIDER_GOOGLE,
   PROVIDER_DEFAULT,
 } from "react-native-maps";
@@ -51,6 +50,8 @@ export default function SafetyMapScreen() {
     longitude: number;
   } | null>(null);
 
+  const [selectedAlert, setSelectedAlert] = useState<any>(null);
+
   useEffect(() => {
     const q = query(collection(db, "alerts"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -68,6 +69,10 @@ export default function SafetyMapScreen() {
     const { coordinate } = e.nativeEvent;
     setSelectedCoords(coordinate);
     setModalVisible(true);
+  };
+
+  const handleMapPress = () => {
+    if (selectedAlert) setSelectedAlert(null);
   };
 
   const handleCreateAlert = async () => {
@@ -110,6 +115,7 @@ export default function SafetyMapScreen() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, "alerts", alertId));
+            setSelectedAlert(null);
           } catch (error) {
             console.error("Error clearing pin:", error);
           }
@@ -129,12 +135,12 @@ export default function SafetyMapScreen() {
       ) : (
         <MapView
           style={styles.map}
-          // Automatically uses Google Maps on Android and Apple Maps on iOS
           provider={
             Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
           }
           initialRegion={INITIAL_REGION}
           onLongPress={handleMapLongPress}
+          onPress={handleMapPress}
           showsUserLocation={true}
         >
           {alerts.map((alert) => {
@@ -148,52 +154,14 @@ export default function SafetyMapScreen() {
                   latitude: alert.latitude,
                   longitude: alert.longitude,
                 }}
-                onCalloutPress={() => handleDeleteAlert(alert.id)}
                 pinColor={pinColor}
-              >
-                <Callout tooltip>
-                  <View style={styles.calloutBubble}>
-                    <View style={styles.calloutHeader}>
-                      <AppIcon
-                        sfName={
-                          isUrgent
-                            ? "exclamationmark.triangle.fill"
-                            : "info.circle.fill"
-                        }
-                        lucideName={isUrgent ? "AlertTriangle" : "Info"}
-                        size={16}
-                        color={pinColor}
-                      />
-                      <Text style={styles.calloutTitle}>{alert.title}</Text>
-                    </View>
-
-                    <Text style={styles.calloutDesc}>{alert.description}</Text>
-
-                    <TouchableOpacity
-                      style={styles.calloutDeleteButton}
-                      onPress={() => handleDeleteAlert(alert.id)}
-                    >
-                      <AppIcon
-                        sfName="trash.fill"
-                        lucideName="Trash2"
-                        size={12}
-                        color="#EF4444"
-                      />
-                      <Text style={styles.deleteText}>Remove Pin</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.calloutFooter}>
-                      <Text style={styles.calloutTime}>
-                        ⚠️ By @{alert.author}
-                      </Text>
-                    </View>
-                  </View>
-                </Callout>
-              </Marker>
+                onPress={() => setSelectedAlert(alert)}
+              />
             );
           })}
         </MapView>
       )}
+
       <TouchableOpacity style={styles.BackButton} onPress={() => router.back()}>
         <AppIcon
           sfName="chevron.left"
@@ -209,6 +177,60 @@ export default function SafetyMapScreen() {
           Hold down at any point on the map to drop a pin.
         </Text>
       </View>
+      {selectedAlert && (
+        <View style={styles.selectedCard}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <AppIcon
+                sfName={
+                  selectedAlert.severity === "high"
+                    ? "exclamationmark.triangle.fill"
+                    : "info.circle.fill"
+                }
+                lucideName={
+                  selectedAlert.severity === "high" ? "AlertTriangle" : "Info"
+                }
+                size={20}
+                color={
+                  selectedAlert.severity === "high" ? "#FF3B30" : "#FF9500"
+                }
+              />
+              <Text style={styles.cardTitle}>{selectedAlert.title}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setSelectedAlert(null)}
+              style={styles.closeBtn}
+            >
+              <AppIcon
+                sfName="xmark"
+                lucideName="X"
+                size={20}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.cardDesc}>{selectedAlert.description}</Text>
+
+          <View style={styles.cardFooter}>
+            <Text style={styles.cardAuthor}>
+              ⚠️ Reported by @{selectedAlert.author}
+            </Text>
+            <TouchableOpacity
+              style={styles.deleteCardBtn}
+              onPress={() => handleDeleteAlert(selectedAlert.id)}
+            >
+              <AppIcon
+                sfName="trash.fill"
+                lucideName="Trash2"
+                size={14}
+                color="#EF4444"
+              />
+              <Text style={styles.deleteCardText}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <Modal visible={modalVisible} animationType="slide" transparent>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -316,29 +338,92 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  calloutBubble: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    width: 220,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+  BackButton: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: "rgba(235, 235, 235, 0.9)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  calloutHeader: {
+  selectedCard: {
+    position: "absolute",
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    flex: 1,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  cardDesc: {
+    fontSize: 15,
+    color: "#4B5563",
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    paddingTop: 12,
+  },
+  cardAuthor: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  deleteCardBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 6,
+    backgroundColor: "#FEF2F2",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
   },
-  calloutTitle: { fontSize: 15, fontWeight: "700", color: "#111827", flex: 1 },
-  calloutDesc: { fontSize: 13, color: "#4B5563", lineHeight: 18 },
-  calloutFooter: {
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: 6,
+  deleteCardText: {
+    color: "#EF4444",
+    fontSize: 13,
+    fontWeight: "700",
   },
-  calloutTime: { fontSize: 11, color: "#9CA3AF", fontWeight: "500" },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -398,38 +483,4 @@ const styles = StyleSheet.create({
     backgroundColor: "#0191d6",
   },
   submitBtnText: { fontWeight: "600", color: "white" },
-  calloutDeleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FEF2F2",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    marginTop: 8,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "#FEE2E2",
-  },
-  deleteText: {
-    color: "#EF4444",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  BackButton: {
-    position: "absolute",
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    backgroundColor: "rgba(235, 235, 235, 0.9)",
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
 });
