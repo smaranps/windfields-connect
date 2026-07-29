@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "460155358748-9ahcjlv18rt76esg97225r542dkht5gg.apps.googleusercontent.com",
+          "client_id": "460155358748-5da5s1jv8jkcqttcr89sbvebtq8pfb71.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.pinisettystudios.windfieldsconnect",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+            "certificate_hash": "400c6ef16e05d3d13948aebec8689640ba316be5"
           }
         },
         {
