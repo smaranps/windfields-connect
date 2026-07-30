@@ -38,6 +38,8 @@ export default function Login() {
     GoogleSignin.configure({
       webClientId:
         "460155358748-1gqevqe05m0vdlmvn8ci2ha50ciicv48.apps.googleusercontent.com",
+      offlineAccess: true,
+      forceCodeForRefreshToken: true,
     });
   }, []);
 
